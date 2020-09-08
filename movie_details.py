@@ -55,7 +55,12 @@ headers = {
     'x-rapidapi-key': config['x-rapidapi-key']
     }
 
-response_movies = requests.request("GET", url, headers=headers, params=querystring_getid).json()["movie_results"]
+response = requests.request("GET", url, headers=headers, params=querystring_getid).json()
+if "movie_results" not in response.keys():
+  print("No Movies Found")
+  exit()
+
+response_movies = response["movie_results"]
 
 index=1
 for movie in response_movies:
