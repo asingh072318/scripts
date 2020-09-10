@@ -5,8 +5,30 @@ SERVER=`uname -n`
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0;m'
-version=`cat /etc/os-release | grep "^VERSION=" | cut -d "=" -f2 | cut -b 2`
+hostnameinfo=`hostnamectl | grep "Operating" | cut -d ":" -f2 | cut -c 2-`
 
+case "$OSTYPE" in
+  linux*)
+    distro=$(echo $hostnameinfo | cut -d " " -f1)
+    if distro=="CentOS"
+    then
+      version=$(echo $hostnameinfo | cut -d " " -f3)
+      if [[ $version -ne 6 ]] && [[ $version -ne 7 ]]
+      then
+        echo -e "[${RED}CentOS Version $version not Supported${NC}]"
+        exit
+      fi
+    else
+      echo -e "[${RED} Distro not Supported ${NC}]"
+    fi
+    echo -e "[${GREEN}USING CentOS Version ${version} ${NC}]"
+    ;;
+  *)
+    echo -e "[${RED} OS not Supported ${NC}]"
+    exit
+    ;;
+esac
+  
 # check if script run as root
 if [ "$EUID" -ne 0 ]
 then
@@ -59,7 +81,7 @@ echo -e "[${GREEN} Begin installation of Puppet Agent ${NC}]"
   echo -e "[${GREEN} RPM already present ${NC}]"
 } || {
   echo -e "[${GREEN} Adding RPM ${NC}]"
-  rpm -Uvh https://yum.puppet.com/puppet5-release-el-$version.noarch.rpm
+  rpm -Uvh https://yum.puppet.com/puppet5-release-el-$version.noarch.rpm >>/dev/null 2>&1
 }
 
 (rpm -qa | grep puppet-agent >>/dev/null 2>&1)&&{
@@ -67,7 +89,7 @@ echo -e "[${GREEN} Begin installation of Puppet Agent ${NC}]"
 } || {
   echo -e "[${GREEN} Installing AGENT ${NC}]" 
   yum install -q -y puppet-agent
-  if (rpm -qa | grep puppet-agent)
+  if (rpm -qa | grep puppet-agent >>/dev/null 2>&1)
   then
     echo -e "[${GREEN} Successfully installed Puppet Agent ${NC}]"
   fi
