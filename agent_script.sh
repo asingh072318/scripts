@@ -4,6 +4,7 @@ DATE=`date '+%Y%m%d'`
 SERVER=`uname -n`
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 NC='\033[0;m'
 hostnameinfo=`hostnamectl | grep "Operating" | cut -d ":" -f2 | cut -c 2-`
 
@@ -38,9 +39,9 @@ else
   echo -e "[${GREEN} Running as root ${NC}]"
 fi
 
-echo -e "${GREEN} SYSTEM REQUIREMENTS CHECK at $DATE for $SERVER ${NC}"
+echo -e "${YELLOW} SYSTEM REQUIREMENTS CHECK at $DATE for $SERVER ${NC}"
 
-echo -e "[${GREEN} Checking if NSLOOKUP PRESENT ${NC}]"
+echo -e "[${YELLOW} Checking if NSLOOKUP PRESENT ${NC}]"
 
 if (which nslookup >/dev/null 2>&1)
 then
@@ -57,10 +58,10 @@ else
   fi
 fi
 
-echo -e "[${GREEN} Checking if puppet master in /etc/hosts ${NC}]"
+echo -e "[${YELLOW} Checking if puppet master in /etc/hosts ${NC}]"
 which sed >/dev/null 2>&1 && {
-  echo -e "[${GREEN}Creating backup of /etc/hosts at /etc/hosts.bak${NC}]"
-  echo -e "[${GREEN}Removing all entries of puppet in /etc/hosts ${NC}]"
+  echo -e "[${YELLOW} Creating backup of /etc/hosts at /etc/hosts.bak${NC}]"
+  echo -e "[${YELLOW} Removing all entries of puppet in /etc/hosts ${NC}]"
   sed -i.bak '/puppet/d' /etc/hosts
   echo "10.0.2.7 puppet puppet-master" >> /etc/hosts
   echo -e "[${GREEN} Appended Puppet Master to /etc/hosts ${NC}]"
@@ -75,26 +76,35 @@ else
   echo -e "[${RED} NO ROUTE to PUPPET MASTER, please check your FIREWALL] ${NC}"
 fi
 
-echo -e "[${GREEN} Begin installation of Puppet Agent ${NC}]"
+echo -e "[${YELLOW} Begin installation of Puppet Agent ${NC}]"
 
 (rpm -qa | grep puppet5-release-5.0.0-12.el$version.noarch >>/dev/null 2>&1)&&{
   echo -e "[${GREEN} RPM already present ${NC}]"
 } || {
-  echo -e "[${GREEN} Adding RPM ${NC}]"
+  echo -e "[${YELLOW} Adding RPM ${NC}]"
   rpm -Uvh https://yum.puppet.com/puppet5-release-el-$version.noarch.rpm >>/dev/null 2>&1
 }
 
 (rpm -qa | grep puppet-agent >>/dev/null 2>&1)&&{
   echo -e "[${GREEN} PUPPET AGENT already present ${NC}]"
 } || {
-  echo -e "[${GREEN} Installing AGENT ${NC}]" 
-  yum install -q -y puppet-agent
+  echo -e "[${YELLOW} Installing AGENT ${NC}]" 
+  yum install -d1 -y puppet-agent
   if (rpm -qa | grep puppet-agent >>/dev/null 2>&1)
   then
     echo -e "[${GREEN} Successfully installed Puppet Agent ${NC}]"
   fi
 }
 
-echo -e "[${GREEN} Starting Puppet-agent and enabling it to run on reboot${NC}]"
-/opt/puppetlabs/bin/puppet resource service puppet ensure=running enable=true >>/dev/null 2>&1
-systemctl is-active --quiet puppet && echo -e "[${GREEN} PUPPET AGENT is RUNNING ${NC}]" || echo -e "[${RED}PUPPET AGENT is not RUNNING${NC}]"
+if [ -f /etc/puppetlabs/puppet/puppet.conf ]
+then
+  echo -e "[${YELLOW} Going to Remove old puppet.conf ${NC}]"
+fi
+
+(systemctl is-active --quiet puppet)&&{
+  echo -e "[${GREEN} Puppet Agent already Running${NC}]"
+} || {
+  echo -e "[${YELLOW} Starting Puppet-agent and enabling it to run on reboot${NC}]"
+  /opt/puppetlabs/bin/puppet resource service puppet ensure=running enable=true >>/dev/null 2>&1
+  systemctl is-active --quiet puppet && echo -e "[${GREEN} PUPPET AGENT is RUNNING ${NC}]" || echo -e "[${RED} PUPPET AGENT is not RUNNING${NC}]"
+}
