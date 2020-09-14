@@ -7,6 +7,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0;m'
 hostnameinfo=`hostnamectl | grep "Operating" | cut -d ":" -f2 | cut -c 2-`
+hostname=`hostname | cut -d '.' -f1`
 
 case "$OSTYPE" in
   linux*)
@@ -98,13 +99,35 @@ echo -e "[${YELLOW} Begin installation of Puppet Agent ${NC}]"
 
 if [ -f /etc/puppetlabs/puppet/puppet.conf ]
 then
-  echo -e "[${YELLOW} Going to Remove old puppet.conf ${NC}]"
+  echo -e "[${YELLOW} Going to Move old puppet.conf to puppet.conf.old ${NC}]"
+  mv /etc/puppetlabs/puppet/puppet.conf /etc/puppetlabs/puppet/puppet.conf.old
 fi
+
+echo -e "[${YELLOW} Creating new puppet.conf ${NC}]"
+cat > /etc/puppetlabs/puppet/puppet.conf << EOF
+[main]
+stringify_facts = false
+vardir = /var/lib/puppet/$hostname.$hostname.root
+bucketlist = $vardir/clientbucket
+clientbucketdir = $vardir/clientbucket
+[agent]
+certname = $hostname.$hostname.root
+vardir = /var/lib/puppet/$certname
+ssldir = $vardir/ssl
+daemonize = false
+onetime = true
+environment = production
+server_list = psdevap002.mzp.world
+EOF
+echo -e "[${GREEN} puppet.conf created ${NC}]"
 
 (systemctl is-active --quiet puppet)&&{
   echo -e "[${GREEN} Puppet Agent already Running${NC}]"
+  systemctl restart puppet && echo -e "[${GREEN} Restarted Puppet Agent ${NC}]"
 } || {
   echo -e "[${YELLOW} Starting Puppet-agent and enabling it to run on reboot${NC}]"
   /opt/puppetlabs/bin/puppet resource service puppet ensure=running enable=true >>/dev/null 2>&1
-  systemctl is-active --quiet puppet && echo -e "[${GREEN} PUPPET AGENT is RUNNING ${NC}]" || echo -e "[${RED} PUPPET AGENT is not RUNNING${NC}]"
+  systemctl is-active --quiet puppet && echo -e "[${GREEN} PUPPET AGENT is RUNNING ${NC}]" || echo -e "[${RED} PUPPET AGENT is not RUNNING ${NC}]"
 }
+
+puppet agent -vt --noop
