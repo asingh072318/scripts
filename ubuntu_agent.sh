@@ -16,6 +16,14 @@ case "$OSTYPE" in
 	exit
       else
 	echo -e "[${GREEN} Running as root ${NC}]"
+	echo -e "[${YELLOW} Downloading DEB package to /var/tmp/puppet7.deb ${NC}]"
+	wget https://apt.puppet.com/puppet7-release-${codename}.deb -qO /var/tmp/puppet7.deb
+	if [ -f /var/tmp/puppet7.deb ]
+	then
+          echo -e "[${GREEN} Successfully downloaded package to /var/tmp/puppet7.deb ${NC}]"
+  else
+	  echo -e "[${RED} File not downloaded, Exiting ${NC}]"
+	fi
       fi
     fi
     ;;
