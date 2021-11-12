@@ -21,12 +21,16 @@ case "$OSTYPE" in
 	if [ -f /var/tmp/puppet7.deb ]
 	then
           echo -e "[${GREEN} Successfully downloaded package to /var/tmp/puppet7.deb ${NC}]"
-  else
-	  echo -e "[${RED} File not downloaded, Exiting ${NC}]"
+	  dpkg -i /var/tmp/puppet7.deb
+	  apt-get install puppet-agent
+	  echo -e "[${GREEN} Successfully installed puppet-agent ${NC}]"
+	  (cat /etc/profile | grep puppet >>/dev/null 2>&1)&&{ echo -e "${GREEN} Already Present in PATH"; }||{ echo 'PATH=$PATH:/opt/puppetlabs/bin' >> /etc/profile; source /etc/profile; echo -e "[${GREEN} Successfully added puppet to PATH ${NC}]"; }
 	fi
       fi
-    fi
-    ;;
+     else
+	  echo -e "[${RED} File not downloaded, Exiting ${NC}]"
+     fi
+     ;;
   *)
     echo -e "[${RED} OS not Supported ${NC}]"
     exit
